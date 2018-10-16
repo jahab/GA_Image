@@ -7,6 +7,7 @@ from operator import itemgetter
 
 import time
 import psutil
+import pickle
 
 #import multiprocessing
 
@@ -423,51 +424,100 @@ def fit_select(pops,elitist):
 #for i in range(0,100):
 
 #back_image=draw1.polygon([(0, 0), (0, max(Image_size)), (max(Image_size), max(Image_size)), (max(Image_size), 0)], fill = (255,255,255,255))
-init_pop_cluster=[]
-for i in range(PopMax):
-    pops=create_init_pop(pop_poly)
-    init_pop_cluster.append(pops)
+input=input("if you want to start from new press 0, if want to continue from previously loaded file press 1 \n")
+if input == "0":
+    init_pop_cluster=[]
+    for i in range(PopMax):
+        pops=create_init_pop(pop_poly)
+        init_pop_cluster.append(pops)
 
-Gen=0
+    Gen=0
+    saved_cluster=[]
 
-while(True):
-    print(Gen)
-    images_cluster=create_image(init_pop_cluster)
+    while(True):
+        print(Gen)
+        images_cluster=create_image(init_pop_cluster)
 
+        RGB_of_Images=images_cluster[0] #Numeric RGB combinations of the Population
 
+        binary_encoded_images=images_cluster[1] #Encoded  RGB and polygons of the Population
 
-    RGB_of_Images=images_cluster[0] #Numeric RGB combinations of the Population
+        ranks=fitness_func(Pix_val_target,RGB_of_Images)
+        elitist=elitism(ranks,binary_encoded_images)
 
-    binary_encoded_images=images_cluster[1] #Encoded  RGB and polygons of the Population
+        print(ranks.sort_values().head(10))
+        best_rank=ranks.sort_values().index[0]
 
-    ranks=fitness_func(Pix_val_target,RGB_of_Images)
-    elitist=elitism(ranks,binary_encoded_images)
-
-    print(ranks.sort_values().head(10))
-    best_rank=ranks.sort_values().index[0]
-
-    if Gen%10==0:
-        disp_image=show_image(init_pop_cluster[1], Gen)
-
-
-    select_pool=tournament_selection(ranks,RGB_of_Images,binary_encoded_images)
-    selected_bin_pool=select_pool[1]
-
-
-    crossoverpops=crossover(selected_bin_pool)
-    #crossoverpops=crossover2(ranks,RGB_of_Images,binary_encoded_images)
-
-    mu_rate=0.05
-    mutate_pops=mutation(crossoverpops,mu_rate)
-
-    #select fittest from crossover and mutation
-    select_fit=fit_select(mutate_pops,elitist)
-
-    init_pop_cluster=select_fit
-    Gen=Gen+1
+        if Gen%10==0:
+            disp_image=show_image(init_pop_cluster[1], Gen)
+            saved_cluster=init_pop_cluster
+            with open('outfile', 'wb') as fp:
+                pickle.dump(saved_cluster, fp)
 
 
-###
+        select_pool=tournament_selection(ranks,RGB_of_Images,binary_encoded_images)
+        selected_bin_pool=select_pool[1]
 
-#r= pool.map(run())
-#pool.close()
+        crossoverpops=crossover(selected_bin_pool)
+        #crossoverpops=crossover2(ranks,RGB_of_Images,binary_encoded_images)
+
+        mu_rate=0.05
+        mutate_pops=mutation(crossoverpops,mu_rate)
+
+        #select fittest from crossover and mutation
+        select_fit=fit_select(mutate_pops,elitist)
+
+        init_pop_cluster=select_fit
+        Gen=Gen+1
+
+else:
+    with open ('outfile', 'rb') as fp:
+        init_pop_cluster = pickle.load(fp)
+    #init_pop_cluster=[]
+    #for i in range(PopMax):
+    #    pops=create_init_pop(pop_poly)
+    #    init_pop_cluster.append(pops)
+
+    Gen=0
+    saved_cluster=[]
+
+    while(True):
+        print(Gen)
+        images_cluster=create_image(init_pop_cluster)
+
+        RGB_of_Images=images_cluster[0] #Numeric RGB combinations of the Population
+
+        binary_encoded_images=images_cluster[1] #Encoded  RGB and polygons of the Population
+
+        ranks=fitness_func(Pix_val_target,RGB_of_Images)
+        elitist=elitism(ranks,binary_encoded_images)
+
+        print(ranks.sort_values().head(10))
+        best_rank=ranks.sort_values().index[0]
+
+        if Gen%10==0:
+            disp_image=show_image(init_pop_cluster[1], Gen)
+            saved_cluster=init_pop_cluster
+            with open('outfile', 'wb') as fp:
+                pickle.dump(saved_cluster, fp)
+
+
+        select_pool=tournament_selection(ranks,RGB_of_Images,binary_encoded_images)
+        selected_bin_pool=select_pool[1]
+
+        crossoverpops=crossover(selected_bin_pool)
+        #crossoverpops=crossover2(ranks,RGB_of_Images,binary_encoded_images)
+
+        mu_rate=0.05
+
+        mutate_pops=mutation(crossoverpops,mu_rate)
+
+        #select fittest from crossover and mutation
+        select_fit=fit_select(mutate_pops,elitist)
+
+        init_pop_cluster=select_fit
+        Gen=Gen+1
+
+
+
+#start from already given Data
